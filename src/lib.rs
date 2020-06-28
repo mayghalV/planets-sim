@@ -1,6 +1,8 @@
 #![allow(dead_code)]
-
 use std::ops::Add;
+
+mod utils;
+use utils::{calculate_displacement, calculate_new_velocity};
 
 pub const G: f32 = 6.67e-11f32;
 
@@ -20,18 +22,6 @@ struct Acceleration(f32, f32);
 #[derive(Debug)]
 #[derive(PartialEq)]
 struct Force(f32, f32);
-
-
-fn calculate_displacement(u: f32, a: f32, t: f32) -> f32 {
-    // TODO: move to utils file
-    // TODO: Use generics
-    // Implementation of suvat equation, s = displacement, u = intial velocity, a = acceleration, t = time
-    u * t + 0.5 * a * t * t
-}
-
-fn calculate_new_velocity(u: f32, a: f32, t: f32) -> f32 {
-    u + a * t
-}
 
 struct Planet {
     id: String,
