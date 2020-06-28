@@ -1,4 +1,6 @@
+#![allow(dead_code)]
 
+use std::ops::Add;
 
 pub const G: f32 = 6.67e-11f32;
 
@@ -19,6 +21,17 @@ struct Acceleration(f32, f32);
 #[derive(PartialEq)]
 struct Force(f32, f32);
 
+
+fn calculate_displacement(u: f32, a: f32, t: f32) -> f32 {
+    // TODO: move to utils file
+    // TODO: Use generics
+    // Implementation of suvat equation, s = displacement, u = intial velocity, a = acceleration, t = time
+    u * t + 0.5 * a * t * t
+}
+
+fn calculate_new_velocity(u: f32, a: f32, t: f32) -> f32 {
+    u + a * t
+}
 
 struct Planet {
     id: String,
@@ -78,9 +91,18 @@ impl Position{
     }
 }
 
+
 impl Force {
     fn to_acceleration(&self, mass: f32) -> Acceleration{
         Acceleration(&self.0 / mass, &self.1 / mass)
+    }
+}
+
+impl Add for Force {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0, self.1 + other.1)
     }
 }
 
@@ -109,8 +131,20 @@ impl Planet{
         Force(force * angle_to_planet.cos() , force * angle_to_planet.sin())
     }
 
-    fn calculate_acceleration(&self, force: f32) -> Acceleration {
-        Acceleration(0.0, 0.0)
+    fn apply_force(&mut self, force: &Force, time: f32){
+        // TODO: This is quite generic so can use a trait here
+        let accel = force.to_acceleration(self.mass);
+
+        // Move
+        let s_x = calculate_displacement(self.velocity.0, accel.0, time);
+        let s_y = calculate_displacement(self.velocity.1, accel.1, time);
+        self.position = Position(self.position.0 + s_x, self.position.1 + s_y);
+
+        // Calculate new velocity too
+        let v_x = calculate_new_velocity(self.velocity.0, accel.0, time);
+        let v_y = calculate_new_velocity(self.velocity.1, accel.1, time);
+        self.velocity = Velocity(v_x, v_y);
+
     }
 
 }
@@ -118,7 +152,7 @@ impl Planet{
 // TODO: Convert equals to check approx equals
 
 #[cfg(test)]
-mod test_Point{
+mod test_class_point{
     use super::*;
 
     fn point_factory(i: i32) -> Position {
@@ -180,7 +214,7 @@ mod test_Point{
 }
 
 #[cfg(test)]
-mod test_Force {
+mod test_class_force {
     use super::*;
 
     #[test]
@@ -189,11 +223,22 @@ mod test_Force {
         let a = f.to_acceleration(2.0);
         assert_eq!(a, Acceleration(2.0, 3.1));
     }
+
+    #[test]
+    fn test_add(){
+        let force_1 = Force(1.0, 4.2);
+        let force_2 = Force(-5.2, 7.4);
+        
+        assert_eq!(force_1 + force_2, Force(-4.2, 11.6))
+    }
 }
 
 
+
+
+
 #[cfg(test)]
-mod test_Planet {
+mod test_class_planet {
     use super::*;
 
     fn planet_factory(i: i32) -> Planet {
@@ -202,7 +247,7 @@ mod test_Planet {
             1 => Planet::new(String::from("planet_1"), 8.0e10, 10.0, Position(3.0, -4.0), Velocity(-3.0, 8.0)),
             2 => Planet::new(String::from("planet_2"), 7.0e2, 5.0, Position(-2.0, 3.0), Velocity(-3.0, 8.0)),
             3 => Planet::new(String::from("planet_3"), 6.0e2, 5.0, Position(8.0, 4.0), Velocity(-3.0, 8.0)),
-
+            4 => Planet::new(String::from("planet_1"), 8.0, 10.0, Position(6.5, -4.0), Velocity(-3.0, 8.0)),
             //2 => Position(-3.0, 4.0),
             //3 => Position(3.0, -4.0),
             
@@ -261,5 +306,14 @@ mod test_Planet {
         
     }
 
+    #[test]
+    fn test_apply_force(){
+        let mut planet_1 = planet_factory(4);
+        planet_1.apply_force(&Force(10.0, -50.0), 2.0);
+
+        assert_eq!(planet_1.velocity, Velocity(-0.5, -4.5));
+        assert_eq!(planet_1.position, Position(3.0, -0.5));
+
+    }
 
 }
