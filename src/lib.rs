@@ -1,29 +1,27 @@
 #![allow(dead_code)]
 use std::ops::Add;
+use serde::{Serialize, Deserialize};
 
-mod utils;
+#[path = "utils.rs"]  mod utils;
 use utils::{calculate_displacement, calculate_new_velocity};
 
 pub const G: f32 = 6.67e-11f32;
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-struct Position(f32, f32);
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Position(f32, f32);
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-struct Velocity(f32, f32);
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Velocity(f32, f32);
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-struct Acceleration(f32, f32);
+#[derive(Debug, PartialEq)]
+pub struct Acceleration(f32, f32);
 
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-struct Force(f32, f32);
+#[derive(Debug, PartialEq)]
+pub struct Force(f32, f32);
 
-struct Planet {
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Planet {
     id: String,
     mass: f32,
     radius: f32,
@@ -77,7 +75,6 @@ impl Position{
         }
 
         theta
-
     }
 }
 
@@ -222,9 +219,6 @@ mod test_class_force {
         assert_eq!(force_1 + force_2, Force(-4.2, 11.6))
     }
 }
-
-
-
 
 
 #[cfg(test)]
