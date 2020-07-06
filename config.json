@@ -1,6 +1,22 @@
-{   "id" : "planet_1",
-    "mass" : 10.0,
-    "radius": 5.0,
-    "position" : [0.0, 0.0],
-    "velocity" : [0.0, 0.0]
+{
+    "time_step": 1.0,
+    "total_time": 3.0,
+    "planets" : [
+                    {   "id" : "planet_1",
+                        "mass" : 10.0,
+                        "radius": 5.0,
+                        "position" : [0.0, 0.0],
+                        "velocity" : [0.0, 0.0]
+                    },
+
+                    {   "id" : "planet_2",
+                        "mass" : 20.0,
+                        "radius": 5.0,
+                        "position" : [20.0, 0.0],
+                        "velocity" : [0.0, 0.5]
+                    }
+
+
+                ]
+
 }

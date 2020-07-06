@@ -1,13 +1,16 @@
 #![allow(dead_code)]
-use std::ops::Add;
+use std::ops::{Add, Mul};
+use std::clone::Clone;
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 
 #[path = "utils.rs"]  mod utils;
 use utils::{calculate_displacement, calculate_new_velocity};
 
+
 pub const G: f32 = 6.67e-11f32;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Position(f32, f32);
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -18,16 +21,27 @@ pub struct Acceleration(f32, f32);
 
 
 #[derive(Debug, PartialEq)]
-pub struct Force(f32, f32);
+pub struct Force(pub f32, pub f32);
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Planet {
-    id: String,
+    pub id: String,
     mass: f32,
     radius: f32,
     position: Position,
     velocity: Velocity,
 }
+
+pub struct System {
+    planets: Vec<Planet>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct TimePosition {
+    pub time: f32,
+    pub positions: HashMap<String, Position>,
+}
+
 
 impl Position{
     fn difference_in_distance_from_point(&self, point: &Position) -> (f32, f32) {
@@ -76,6 +90,13 @@ impl Position{
 
         theta
     }
+
+}
+
+impl TimePosition {
+    pub fn new(time: f32, positions: HashMap<String, Position>) -> TimePosition {
+        TimePosition{time: time, positions: positions}
+    }
 }
 
 
@@ -83,13 +104,29 @@ impl Force {
     fn to_acceleration(&self, mass: f32) -> Acceleration{
         Acceleration(&self.0 / mass, &self.1 / mass)
     }
+
+    pub fn append_force(&mut self, force: &Force) {
+        self.0 = self.0 + force.0;
+        self.1 = self.1 + force.1;
+    }
+
 }
 
-impl Add for Force {
-    type Output = Self;
+impl Add for &Force {
+    type Output = Force;
 
-    fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0, self.1 + other.1)
+    fn add(self, other: &Force) -> Force {
+        Force(self.0 + other.0, self.1 + other.1)
+    }
+}
+
+impl Mul<f32> for &Force {
+    // The multiplication of rational numbers is a closed operation.
+    type Output = Force;
+
+    // TODO: Should use generics here, but only when force is a generic too
+    fn mul(self, rhs: f32) -> Force {
+        Force(self.0 * rhs, self.1 * rhs)
     }
 }
 
@@ -112,13 +149,14 @@ impl Planet{
         other_planet.mass*self.mass*G/r_squared
     }
 
-    fn calculate_gravitational_force(&self, other_planet: &Planet) -> Force {
+    pub fn calculate_gravitational_force(&self, other_planet: &Planet) -> Force {
+        // Force applied on self as a result of other_planet
         let force = self.calculate_gravitational_force_abs(other_planet);
         let angle_to_planet = self.position.angle_to_point(&other_planet.position);
-        Force(force * angle_to_planet.cos() , force * angle_to_planet.sin())
+        Force(force * angle_to_planet.cos(), force * angle_to_planet.sin())
     }
 
-    fn apply_force(&mut self, force: &Force, time: f32){
+    pub fn apply_force(&mut self, force: &Force, time: f32){
         // TODO: This is quite generic so can use a trait here
         let accel = force.to_acceleration(self.mass);
 
@@ -133,8 +171,75 @@ impl Planet{
         self.velocity = Velocity(v_x, v_y);
 
     }
+    
+    pub fn get_position_clone(&self) -> Position {
+        self.position.clone()
+    }
 
 }
+
+
+impl System {
+    pub fn new(planets: Vec<Planet>) -> System {
+        System{ planets: planets }
+    }
+
+    fn build_force_dict(&self) -> HashMap<String, Force> {
+        // Calculates the net force on each planet
+        let mut force_dict: HashMap<String, Force> = HashMap::new();
+        
+        
+        for planet_1 in self.planets.iter(){
+            for planet_2 in self.planets.iter(){
+                if planet_1.id < planet_2.id {
+                    let force_on_planet_1 = planet_1.calculate_gravitational_force(planet_2);
+                    let force_on_planet_2 = &force_on_planet_1 * -1.0;
+                    
+                    let force_1 = force_dict.entry(planet_1.id.clone()).or_insert(Force(0.0, 0.0));
+                    force_1.append_force(&force_on_planet_1);
+                    
+                    let force_2 = force_dict.entry(planet_2.id.clone()).or_insert(Force(0.0, 0.0));
+                    force_2.append_force(&force_on_planet_2);
+                }
+            
+            }
+        }
+    
+        force_dict
+    }
+
+    pub fn simulate_movement(&mut self, total_time: f32, time_step: f32) -> Vec<TimePosition>{
+        let mut time_elapsed: f32 = 0.0;
+        let mut positions: Vec<TimePosition> = Vec::new();
+        
+        // Save initial positions
+        positions.push(TimePosition::new(time_elapsed, self.create_position_map(&self.planets)));
+        while time_elapsed < total_time {
+            let mut force_dict = self.build_force_dict();
+            for planet in self.planets.iter_mut(){
+                let force = force_dict.remove(&planet.id).unwrap();
+                planet.apply_force(&force, time_step);
+            }
+            positions.push(TimePosition::new(time_elapsed, self.create_position_map(&self.planets)));
+            time_elapsed += time_step;
+        }
+        
+        positions
+
+    }
+
+    fn create_position_map(&self, planet_vec: &Vec<Planet>) -> HashMap<String, Position> {
+        let mut positions: HashMap<String, Position> = HashMap::new();
+        for planet in planet_vec {
+            positions.insert(planet.id.clone(), planet.get_position_clone() );
+        } 
+        positions
+    }
+
+
+}
+
+
 
 // TODO: Convert equals to check approx equals
 
@@ -216,7 +321,22 @@ mod test_class_force {
         let force_1 = Force(1.0, 4.2);
         let force_2 = Force(-5.2, 7.4);
         
-        assert_eq!(force_1 + force_2, Force(-4.2, 11.6))
+        assert_eq!(&force_1 + &force_2, Force(-4.2, 11.6))
+    }
+
+    #[test]
+    fn test_mul(){
+        let force_1 = &Force(1.0, 4.2) * -2.0;
+        assert_eq!(force_1, Force(-2.0, -8.4));
+    }
+
+    #[test]
+    fn test_append_force(){
+        let mut force_1 = Force(1.0, 4.2);
+        let force_2 = Force(-2.0, 2.0);
+
+        force_1.append_force(&force_2);
+        assert_eq!(force_1, Force(-1.0, 6.2));
     }
 }
 
@@ -231,10 +351,7 @@ mod test_class_planet {
             1 => Planet::new(String::from("planet_1"), 8.0e10, 10.0, Position(3.0, -4.0), Velocity(-3.0, 8.0)),
             2 => Planet::new(String::from("planet_2"), 7.0e2, 5.0, Position(-2.0, 3.0), Velocity(-3.0, 8.0)),
             3 => Planet::new(String::from("planet_3"), 6.0e2, 5.0, Position(8.0, 4.0), Velocity(-3.0, 8.0)),
-            4 => Planet::new(String::from("planet_1"), 8.0, 10.0, Position(6.5, -4.0), Velocity(-3.0, 8.0)),
-            //2 => Position(-3.0, 4.0),
-            //3 => Position(3.0, -4.0),
-            
+            4 => Planet::new(String::from("planet_1"), 8.0, 10.0, Position(6.5, -4.0), Velocity(-3.0, 8.0)),    
             _ => panic!("Unknown point id"),
         }
     }
@@ -298,6 +415,42 @@ mod test_class_planet {
         assert_eq!(planet_1.velocity, Velocity(-0.5, -4.5));
         assert_eq!(planet_1.position, Position(3.0, -0.5));
 
+    }
+
+}
+
+
+#[cfg(test)]
+mod test_class_system{
+    use super::*;
+
+    fn planet_factory(i: i32) -> Planet {
+        match i {
+            0 => Planet::new(String::from("planet_0"), 6.0e5, 5.0, Position(0.0, 0.0), Velocity(23.0, 43.0)),
+            1 => Planet::new(String::from("planet_2"), 7.0e5, 5.0, Position(-10.0, 3.0), Velocity(-3.0, 8.0)),
+            2 => Planet::new(String::from("planet_3"), 8.0e5, 5.0, Position(8.0, 4.0), Velocity(-3.0, 8.0)),
+            _ => panic!("Unknown point id"),
+        }
+    }
+
+    fn get_test_system() -> System {
+        let planets: Vec<Planet> = vec![0,1,2].into_iter().map(|x| planet_factory(x)).collect();
+        System::new(planets)
+    }
+
+
+    #[test]
+    fn test_build_force_dict(){
+        // TODO: This should probably mock instead of actual numbers...
+        let system = get_test_system();
+        let force_dict = system.build_force_dict();
+        assert_eq!(force_dict.len(), 3);
+        assert_eq!(force_dict.get("planet_0").unwrap(), &Force(0.11177966, 0.25282595));
+    }
+    
+    #[test]
+    fn test_mocking(){
+        
     }
 
 }
