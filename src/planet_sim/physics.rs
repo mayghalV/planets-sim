@@ -2,18 +2,20 @@ use std::ops::{Add, Mul};
 use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-
+use pyo3::prelude::*;
 
 use super::utils::{calculate_displacement, calculate_new_velocity};
 
 
 pub const G: f32 = 6.67e-11f32;
 
+
+#[pyclass]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Position {
     // Moved away from tuple struct here to be able to send over pyo3
-    pub x: f32,
-    pub y: f32,
+    #[pyo3(get)] pub x: f32,
+    #[pyo3(get)] pub y: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -39,10 +41,12 @@ pub struct System {
     planets: Vec<Planet>,
 }
 
+
+#[pyclass]
 #[derive(Serialize, Debug)]
 pub struct TimePosition {
-    pub time: f32,
-    pub positions: HashMap<String, Position>,
+    #[pyo3(get)] pub time: f32,
+    #[pyo3(get)] pub positions: HashMap<String, Position>,
 }
 
 
@@ -135,6 +139,8 @@ impl Mul<f32> for &Force {
 
 
 impl Planet{
+
+    #[allow(dead_code)]
     pub fn new(id: String, mass: f32, radius: f32, position: Position, velocity: Velocity) -> Planet {
         Planet{id: id, mass: mass, radius: radius, position: position, velocity: velocity}
     }
@@ -217,14 +223,15 @@ impl System {
         
         // Save initial positions
         positions.push(TimePosition::new(time_elapsed, self.create_position_map(&self.planets)));
+        
         while time_elapsed < total_time {
             let mut force_dict = self.build_force_dict();
             for planet in self.planets.iter_mut(){
                 let force = force_dict.remove(&planet.id).unwrap();
                 planet.apply_force(&force, time_step);
             }
-            positions.push(TimePosition::new(time_elapsed, self.create_position_map(&self.planets)));
             time_elapsed += time_step;
+            positions.push(TimePosition::new(time_elapsed, self.create_position_map(&self.planets)));
         }
         
         positions

@@ -7,6 +7,7 @@ use std::io::prelude::*;
 
 use serde::{Serialize, Deserialize};
 
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     time_step: f32,
@@ -27,6 +28,7 @@ pub fn read_config_and_simulate_system(config_path: &str) -> Vec<TimePosition> {
     system.simulate_movement(config.total_time, config.time_step)
 }
 
+#[allow(dead_code)]
 pub fn write_positions_to_json(path: &str, positions: &Vec<TimePosition>) {
     let s = serde_json::to_string(&positions).unwrap();
 
