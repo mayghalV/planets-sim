@@ -4,14 +4,18 @@ use std::clone::Clone;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-#[path = "utils.rs"]  mod utils;
-use utils::{calculate_displacement, calculate_new_velocity};
+
+use super::utils::{calculate_displacement, calculate_new_velocity};
 
 
 pub const G: f32 = 6.67e-11f32;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Position(f32, f32);
+pub struct Position {
+    // Moved away from tuple struct here to be able to send over pyo3
+    pub x: f32,
+    pub y: f32,
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Velocity(f32, f32);
@@ -44,10 +48,14 @@ pub struct TimePosition {
 
 
 impl Position{
+    fn new(x: f32, y: f32) -> Position {
+        Position{x: x, y: y}
+    }
+
     fn difference_in_distance_from_point(&self, point: &Position) -> (f32, f32) {
         // Returns distance to travel from self to point
-        let x_distance = point.0 - self.0;
-        let y_distance = point.1 - self.1;
+        let x_distance = point.x - self.x;
+        let y_distance = point.y - self.y;
         (x_distance, y_distance)
     }
 
@@ -163,7 +171,7 @@ impl Planet{
         // Move
         let s_x = calculate_displacement(self.velocity.0, accel.0, time);
         let s_y = calculate_displacement(self.velocity.1, accel.1, time);
-        self.position = Position(self.position.0 + s_x, self.position.1 + s_y);
+        self.position = Position::new(self.position.x + s_x, self.position.y + s_y);
 
         // Calculate new velocity too
         let v_x = calculate_new_velocity(self.velocity.0, accel.0, time);
@@ -249,17 +257,17 @@ mod test_class_point{
 
     fn point_factory(i: i32) -> Position {
         match i {
-            0 => Position(0.0, 0.0),
-            1 => Position(3.0, 4.0),
-            2 => Position(-3.0, 4.0),
-            3 => Position(3.0, -4.0),
-            4 => Position(-3.0, -4.0),
-            5 => Position(0.0, 6.0),
-            6 => Position(0.0, -7.0),
-            7 => Position(3.0, 0.0),
-            8 => Position(-4.0, 0.0),
-            9 => Position(-2.0, 8.0),
-            10 => Position(4.0, 5.0),
+            0 => Position::new(0.0, 0.0),
+            1 => Position::new(3.0, 4.0),
+            2 => Position::new(-3.0, 4.0),
+            3 => Position::new(3.0, -4.0),
+            4 => Position::new(-3.0, -4.0),
+            5 => Position::new(0.0, 6.0),
+            6 => Position::new(0.0, -7.0),
+            7 => Position::new(3.0, 0.0),
+            8 => Position::new(-4.0, 0.0),
+            9 => Position::new(-2.0, 8.0),
+            10 => Position::new(4.0, 5.0),
             _ => panic!("Unknown point id"),
         }
     }
@@ -347,11 +355,11 @@ mod test_class_planet {
 
     fn planet_factory(i: i32) -> Planet {
         match i {
-            0 => Planet::new(String::from("planet_0"), 6.0, 5.0, Position(0.0, 0.0), Velocity(23.0, 43.0)),
-            1 => Planet::new(String::from("planet_1"), 8.0e10, 10.0, Position(3.0, -4.0), Velocity(-3.0, 8.0)),
-            2 => Planet::new(String::from("planet_2"), 7.0e2, 5.0, Position(-2.0, 3.0), Velocity(-3.0, 8.0)),
-            3 => Planet::new(String::from("planet_3"), 6.0e2, 5.0, Position(8.0, 4.0), Velocity(-3.0, 8.0)),
-            4 => Planet::new(String::from("planet_1"), 8.0, 10.0, Position(6.5, -4.0), Velocity(-3.0, 8.0)),    
+            0 => Planet::new(String::from("planet_0"), 6.0, 5.0, Position::new(0.0, 0.0), Velocity(23.0, 43.0)),
+            1 => Planet::new(String::from("planet_1"), 8.0e10, 10.0, Position::new(3.0, -4.0), Velocity(-3.0, 8.0)),
+            2 => Planet::new(String::from("planet_2"), 7.0e2, 5.0, Position::new(-2.0, 3.0), Velocity(-3.0, 8.0)),
+            3 => Planet::new(String::from("planet_3"), 6.0e2, 5.0, Position::new(8.0, 4.0), Velocity(-3.0, 8.0)),
+            4 => Planet::new(String::from("planet_1"), 8.0, 10.0, Position::new(6.5, -4.0), Velocity(-3.0, 8.0)),    
             _ => panic!("Unknown point id"),
         }
     }
@@ -362,7 +370,7 @@ mod test_class_planet {
         assert_eq!(planet.id, "planet_0");
         assert_eq!(planet.mass, 6.0);
         assert_eq!(planet.radius, 5.0);
-        assert_eq!(planet.position, Position(0.0,0.0));
+        assert_eq!(planet.position, Position::new(0.0,0.0));
         assert_eq!(planet.velocity, Velocity(23.0,43.0));
     }
 
@@ -413,7 +421,7 @@ mod test_class_planet {
         planet_1.apply_force(&Force(10.0, -50.0), 2.0);
 
         assert_eq!(planet_1.velocity, Velocity(-0.5, -4.5));
-        assert_eq!(planet_1.position, Position(3.0, -0.5));
+        assert_eq!(planet_1.position, Position::new(3.0, -0.5));
 
     }
 
@@ -426,9 +434,9 @@ mod test_class_system{
 
     fn planet_factory(i: i32) -> Planet {
         match i {
-            0 => Planet::new(String::from("planet_0"), 6.0e5, 5.0, Position(0.0, 0.0), Velocity(23.0, 43.0)),
-            1 => Planet::new(String::from("planet_2"), 7.0e5, 5.0, Position(-10.0, 3.0), Velocity(-3.0, 8.0)),
-            2 => Planet::new(String::from("planet_3"), 8.0e5, 5.0, Position(8.0, 4.0), Velocity(-3.0, 8.0)),
+            0 => Planet::new(String::from("planet_0"), 6.0e5, 5.0, Position::new(0.0, 0.0), Velocity(23.0, 43.0)),
+            1 => Planet::new(String::from("planet_2"), 7.0e5, 5.0, Position::new(-10.0, 3.0), Velocity(-3.0, 8.0)),
+            2 => Planet::new(String::from("planet_3"), 8.0e5, 5.0, Position::new(8.0, 4.0), Velocity(-3.0, 8.0)),
             _ => panic!("Unknown point id"),
         }
     }
