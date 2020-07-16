@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::ops::{Add, Mul};
 use std::clone::Clone;
 use serde::{Serialize, Deserialize};
@@ -62,10 +61,6 @@ impl Position{
     fn distance_squared_from_point(&self, point: &Position) -> f32 {
         let (x_distance, y_distance) = self.difference_in_distance_from_point(point);
         x_distance.powi(2) + y_distance.powi(2)
-    }
-
-    fn distance_from_point(&self, point: &Position) -> f32 {
-        self.distance_squared_from_point(point).sqrt()
     }
 
     fn angle_to_point(&self, point: &Position) -> f32 {
@@ -272,17 +267,6 @@ mod test_class_point{
         }
     }
 
-
-    #[test]
-    fn test_distance_from_point(){
-        let point_1 = point_factory(1);
-        let point_2 = point_factory(0);
-        
-        assert_eq!(point_1.distance_from_point(&point_1), 0.0);
-
-        assert_eq!(point_1.distance_from_point(&point_2), 5.0);
-        assert_eq!(point_2.distance_from_point(&point_1), 5.0);
-    }
 
     #[test]
     fn test_angle_to_point(){
