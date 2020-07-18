@@ -13,5 +13,6 @@ fn planet_sim(_py: Python, m: &PyModule) -> PyResult<()> {
 
 #[pyfunction]
 pub fn read_config_and_simulate_system(config_path: &str) -> Vec<planet_sim::physics::TimePosition> {
+    // This is a duplicate but it keeps the actual rust function and this pyfunction seperate
     planet_sim::file_methods::read_config_and_simulate_system(config_path)
 }

@@ -1,19 +1,40 @@
 {
     "time_step": 1.0,
-    "total_time": 3.0,
+    "total_time": 1000.0,
     "planets" : [
                     {   "id" : "planet_1",
-                        "mass" : 10.0,
+                        "mass" : 50000000.0,
                         "radius": 5.0,
                         "position" : [0.0, 0.0],
                         "velocity" : [0.0, 0.0]
                     },
 
                     {   "id" : "planet_2",
-                        "mass" : 20.0,
+                        "mass" : 2000000.0,
                         "radius": 5.0,
-                        "position" : [20.0, 0.0],
-                        "velocity" : [0.0, 0.5]
+                        "position" : [5.0, 0.0],
+                        "velocity" : [-0.000, 0.000]
+                    },
+
+                    {   "id" : "planet_3",
+                        "mass" : 30000000.0,
+                        "radius": 5.0,
+                        "position" : [10.0, 5.0],
+                        "velocity" : [0.0, 0.0]
+                    },
+
+                    {   "id" : "planet_4",
+                        "mass" : 60000.0,
+                        "radius": 5.0,
+                        "position" : [5.0, 5.0],
+                        "velocity" : [0.0, 0.0]
+                    },
+
+                    {   "id" : "planet_5",
+                        "mass" : 6000.0,
+                        "radius": 5.0,
+                        "position" : [7.0, 3.0],
+                        "velocity" : [-0.01, 0.0]
                     }
 
 
