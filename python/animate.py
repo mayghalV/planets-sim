@@ -6,8 +6,10 @@ import matplotlib.animation as animation
 import json
 
 print_flag = False
+config_file = 'config/config.json'
 
-result = planet_sim.read_config_and_simulate_system("config.json")
+
+result = planet_sim.read_config_and_simulate_system(config_file)
 if print_flag:
     for r in result:
         print(f'Time: {r.time}')
@@ -15,7 +17,7 @@ if print_flag:
         for k, v in r.positions.items():
             print(f'{k}: x={v.x}, y={v.y}')
 
-with open('config.json') as f:
+with open(config_file) as f:
     d = json.load(f)
 
 planet_names = [planet_config['id'] for planet_config in d['planets']]
@@ -60,20 +62,31 @@ colors = ['firebrick',
 # Build the initial line objects to update in the animation
 points = []
 lines = []
+annotations = []
 
 for i, planet_name in enumerate(planet_names):
-    p, = ax.plot(position_lists[planet_name]['x'][0], position_lists[planet_name]['y'][0], marker='o', color=colors[i])
+    x = position_lists[planet_name]['x'][0]
+    y = position_lists[planet_name]['y'][0]
+    # Add planet point
+    p, = ax.plot(x, y, marker='o', color=colors[i])
     points.append(p)
 
-    l, = ax.plot(position_lists[planet_name]['x'][0], position_lists[planet_name]['y'][0], marker='', color=colors[i], alpha=0.5)
+    # Add trailing line
+    l, = ax.plot(x, y, marker='', color=colors[i], alpha=0.5)
     lines.append(l)
+
+    # Add annotation
+    a = ax.annotate(planet_name, (x, y), fontsize=8)
+    annotations.append(a)
 
 
 def animate(i):
     for j, planet_name in enumerate(planet_names):
-        points[j].set_data(position_lists[planet_name]['x'][i], position_lists[planet_name]['y'][i])
+        x = position_lists[planet_name]['x'][i]
+        y = position_lists[planet_name]['y'][i]
+        points[j].set_data(x, y)
         lines[j].set_data(position_lists[planet_name]['x'][:i+1], position_lists[planet_name]['y'][:i+1])
-
+        annotations[j].set_position((x,y))
 
 # Animate the plot and show
 line_ani = animation.FuncAnimation(fig, animate, len(result), interval=1)
