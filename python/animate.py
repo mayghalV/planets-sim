@@ -1,3 +1,10 @@
+"""
+Note to update planet_sim.pyd:
+    1. run 'cargo build --release
+    2. (on Windows) Copy target/release/planet_sim.dll to python/
+    3. Rename the extension .dll to .pyd
+"""
+
 from typing import Dict, List, Tuple
 import numpy as np
 import planet_sim
