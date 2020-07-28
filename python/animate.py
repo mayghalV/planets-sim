@@ -13,7 +13,7 @@ import matplotlib.animation as animation
 import json
 
 print_flag = False
-config_file = 'config/config.json'
+config_file = 'config/config_orbit.json'
 
 
 result = planet_sim.read_config_and_simulate_system(config_file)
@@ -71,6 +71,9 @@ points = []
 lines = []
 annotations = []
 
+min_x, max_x = 0, 0
+min_y, max_y = 0, 0
+
 for i, planet_name in enumerate(planet_names):
     x = position_lists[planet_name]['x'][0]
     y = position_lists[planet_name]['y'][0]
@@ -86,6 +89,15 @@ for i, planet_name in enumerate(planet_names):
     a = ax.annotate(planet_name, (x, y), fontsize=8)
     annotations.append(a)
 
+# Set the scale of the axis
+for x_y_dict in position_lists.values():
+    min_x = min(min_x, min(x_y_dict['x']))
+    max_x = max(max_x, max(x_y_dict['x']))
+    min_y = min(min_y, min(x_y_dict['y']))
+    max_y = max(max_y, max(x_y_dict['y']))
+
+ax.set_ylim([min_y, max_y])
+ax.set_xlim([min_x, max_x])
 
 def animate(i):
     for j, planet_name in enumerate(planet_names):
